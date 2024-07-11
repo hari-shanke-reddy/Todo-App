@@ -1,0 +1,10 @@
+{
+  // The "presets" array tells Babel which presets to use for transforming your code.
+  "presets": [
+    // "@babel/preset-env" allows you to use the latest JavaScript features by converting them into a format that is compatible with older JavaScript environments.
+    "@babel/preset-env",
+
+    // "@babel/preset-react" allows you to use JSX syntax and transform it into JavaScript code.
+    "@babel/preset-react"
+  ]
+}
