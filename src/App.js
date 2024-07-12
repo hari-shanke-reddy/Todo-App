@@ -1,47 +1,77 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchTodos, addTodo, updateTodo, deleteTodo } from './redux/todosSlice';
-import { Container, Typography, TextField, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Box } from '@mui/material';
+import { useForm } from 'react-hook-form';
+import {
+  Container,
+  Typography,
+  Button,
+  IconButton,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Box,
+  TextField,
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { styled } from '@mui/system';
+
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    minWidth: '500px',
+  },
+}));
 
 const App = () => {
   const dispatch = useDispatch();
   const todos = useSelector((state) => state.todos.todos);
-  const [newTodo, setNewTodo] = useState('');
   const [editingTodo, setEditingTodo] = useState(null);
-  const [editingTodoText, setEditingTodoText] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [todoToDelete, setTodoToDelete] = useState(null);
-  const [addError, setAddError] = useState('');
-  const [editError, setEditError] = useState('');
 
-  // Fetch todos when the component mounts
+  const {
+    register: registerAdd,
+    handleSubmit: handleSubmitAdd,
+    formState: { errors: errorsAdd },
+    reset: resetAdd,
+  } = useForm();
+  
+  const {
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    formState: { errors: errorsEdit },
+    reset: resetEdit,
+  } = useForm();
+
   useEffect(() => {
     dispatch(fetchTodos());
   }, [dispatch]);
 
-  // Handle adding a new todo (open add dialog)
+  // Handle opening add todo dialog
   const handleOpenAddTodoDialog = () => {
     setAddDialogOpen(true);
   };
 
-  // Confirm adding of the todo
-  const confirmAddTodo = () => {
-    if (newTodo.trim() === '') {
-      setAddError('Field is required');
-      return; // Do not add if the todo is empty or contains only whitespace
-    }
-    const newTodoItem = { id: Date.now(), todo: newTodo };
+  // Confirm adding a new todo
+  const confirmAddTodo = (data) => {
+    const newTodoItem = { id: Date.now(), todo: data.newTodo };
     dispatch(addTodo(newTodoItem));
     setAddDialogOpen(false);
-    setNewTodo(''); // Clear the input field after adding
-    setAddError(''); // Clear the error message after adding
+    resetAdd();
   };
 
-  // Handle deleting a todo (open confirmation dialog)
+  // Handle deleting a todo
   const handleDeleteTodo = (id) => {
     setTodoToDelete(id);
     setDeleteDialogOpen(true);
@@ -51,42 +81,39 @@ const App = () => {
   const confirmDeleteTodo = () => {
     dispatch(deleteTodo(todoToDelete));
     setDeleteDialogOpen(false);
-    setTodoToDelete(null); // Reset state after deletion
+    setTodoToDelete(null);
   };
 
-  // Handle editing a todo (open edit dialog)
+  // Handle editing a todo
   const handleEditTodo = (id, todo) => {
-    setEditingTodoText(todo);
-    setEditingTodo(id);
+    setEditingTodo({
+      id,
+      todo,
+    });
     setEditDialogOpen(true);
+    resetEdit({ editTodo: todo });
   };
 
   // Confirm edit of the todo
-  const confirmEditTodo = () => {
-    if (editingTodoText.trim() === '') {
-      setEditError('Field is required');
-      return; // will not save if the todo is empty 
-    }
-    const updatedTodoItem = { id: editingTodo, todo: editingTodoText };
+  const confirmEditTodo = (data) => {
+    const updatedTodoItem = { id: editingTodo.id, todo: data.editTodo };
     dispatch(updateTodo(updatedTodoItem));
     setEditDialogOpen(false);
-    setEditingTodoText(''); // Clear the input field after saving
-    setEditingTodo(null); // Reset state after saving
-    setEditError(''); // Clear the error message after saving
+    setEditingTodo(null);
+    resetEdit();
   };
 
   return (
     <Container>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mt={4}>
-        <Typography variant="h3" gutterBottom>
-          Todo App
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h4" gutterBottom>
+          Todo List
         </Typography>
-       
-      </Box>
-      <Box ml={130}> <Button variant="contained" color="primary" onClick={handleOpenAddTodoDialog}>
+        <Button variant="contained" color="primary" onClick={handleOpenAddTodoDialog}>
           Add Todo
-        </Button></Box>
-      <Box mb={2}> 
+        </Button>
+      </Box>
+      <Box mb={2}>
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -98,7 +125,7 @@ const App = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="h6" style={{ fontWeight: 'bold' }}>
-                    Todo List
+                    Todo
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
@@ -118,14 +145,16 @@ const App = () => {
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Box display="flex" justifyContent="flex-end">
-                      <IconButton edge="end" aria-label="edit" onClick={() => handleEditTodo(todo.id, todo.todo)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteTodo(todo.id)} sx={{ ml: 3 }}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
+                    <IconButton
+                      aria-label="edit"
+                      onClick={() => handleEditTodo(todo.id, todo.todo)}
+                      style={{ marginRight: '10px' }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton aria-label="delete" onClick={() => handleDeleteTodo(todo.id)}>
+                      <DeleteIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -133,85 +162,72 @@ const App = () => {
           </Table>
         </TableContainer>
       </Box>
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Confirm Delete</DialogTitle>
+      
+      
+      <StyledDialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)}>
+        <DialogTitle>Add Todo</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this todo item?</Typography>
+          <form onSubmit={handleSubmitAdd(confirmAddTodo)}>
+            <TextField
+              {...registerAdd('newTodo', { required: 'Field is required' })}
+              label="New Todo"
+              fullWidth
+              margin="normal"
+              error={!!errorsAdd.newTodo}
+              helperText={errorsAdd.newTodo ? errorsAdd.newTodo.message : ''}
+            />
+            <DialogActions>
+              <Button onClick={() => setAddDialogOpen(false)} color="secondary">
+                Cancel
+              </Button>
+              <Button type="submit" color="primary">
+                Save
+              </Button>
+            </DialogActions>
+          </form>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} color="secondary" variant="outlined">
-            Cancel
-          </Button>
-          <Button onClick={confirmDeleteTodo} color="primary" variant="contained" autoFocus>
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        open={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
+      </StyledDialog>
+
+      
+      <StyledDialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
         <DialogTitle>Edit Todo</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Todo"
-            type="text"
-            fullWidth
-            value={editingTodoText}
-            onChange={(e) => setEditingTodoText(e.target.value)}
-            multiline
-            error={!!editError}
-            helperText={editError}
-          />
+          <form onSubmit={handleSubmitEdit(confirmEditTodo)}>
+            <TextField
+              {...registerEdit('editTodo', { required: 'Field is required' })}
+              label="Edit Todo"
+              fullWidth
+              margin="normal"
+              error={!!errorsEdit.editTodo}
+              helperText={errorsEdit.editTodo ? errorsEdit.editTodo.message : ''}
+            />
+            <DialogActions>
+              <Button onClick={() => setEditDialogOpen(false)} color="secondary">
+                Cancel
+              </Button>
+              <Button type="submit" color="primary">
+                Save
+              </Button>
+            </DialogActions>
+          </form>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)} color="secondary" variant="outlined">
-            Cancel
-          </Button>
-          <Button onClick={confirmEditTodo} color="primary" variant="contained" autoFocus>
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        open={addDialogOpen}
-        onClose={() => setAddDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Add New Todo</DialogTitle>
+      </StyledDialog>
+
+     
+      <StyledDialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="New Todo"
-            type="text"
-            fullWidth
-            value={newTodo}
-            onChange={(e) => setNewTodo(e.target.value)}
-            multiline
-            error={!!addError}
-            helperText={addError}
-          />
+          <Typography>Are you sure you want to delete this todo?</Typography>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)} color="secondary">
+              Cancel
+            </Button>
+            <Button onClick={confirmDeleteTodo} color="primary">
+              Delete
+            </Button>
+          </DialogActions>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)} color="secondary" variant="outlined">
-            Cancel
-          </Button>
-          <Button onClick={confirmAddTodo} color="primary" variant="contained" autoFocus>
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </StyledDialog>
     </Container>
   );
 };
